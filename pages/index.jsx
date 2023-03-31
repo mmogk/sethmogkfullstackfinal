@@ -1,57 +1,59 @@
-import { prisma } from '../server/db/client'
+import { useSession, signIn, signOut } from "next-auth/react";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "./api/auth/[...nextauth]";
+import { useRouter } from 'next/router'
 
-import PostSmall from '../components/PostSmall'
-import Button from '../components/Button'
+export default function Component() {
+  const router = useRouter();
 
-import { useRouter } from "next/router"
-
-export default function Home({ posts }) {
-
-  const router = useRouter()
-
+  const handleClick = () => {
+    router.push('/home');
+  };
+  const { data: session } = useSession();
+  console.log(session);
+  if (session) {
+    return (
+      <>
+      <div className="t-2 flex items-center">
+          <div className="flex-col items-center">
+            Successfully Signed in as {session.user.email} <br />
+            <img src={session.user.image} />
+        
+            <br />
+            <div className="text-xl font-bold">
+              {session.user.name} <br />
+            </div>
+          </div>
+        
+        <button className="max-w-2xl mx-auto p-5" onClick={() => signOut()}>Sign out</button>
+        <button onClick={handleClick}>Start Posting</button>
+        </div>
+      </>
+    );
+  }
   return (
     <>
-      <div className="pt-8 pb-10 lg:pt-12 lg:pb-14 mx-auto max-w-7xl px-2">
-
-        <div className='max-w-2xl mx-auto'>
-
-          <Button onClick={() => router.push("/addPost")}>
-            Create A Snippet
-          </Button>
-
-          <ul className='mt-8'>
-            {posts?.map(post => (
-              <li key={post.id}>
-                <PostSmall
-                  post={post}
-                  href={`/code/${post.id}`}
-                  className='my-10'
-                  onLike={() => console.log("like post", post.id)}
-                  onComment={() => console.log("comment post", post.id)}
-                  onShare={() => console.log("share post", post.id)}
-                />
-              </li>
-            ))}
-          </ul>
-
-        </div>
-      </div>
+      Not signed in <br />
+      <button onClick={() => signIn()}>Sign in</button>
     </>
-  )
+  );
 }
 
-export async function getServerSideProps() {
-  // will always run on the server
-  // newest first
-  const posts = await prisma.post.findMany({
-    orderBy: {
-      createdAt: 'desc'
-    }
-  })
+export async function getServerSideProps(context) {
+  const session = await getServerSession(context.req, context.res, authOptions);
+
+  if(!session) {
+    return {
+      redirect: {
+        destination: "/api/auth/signin",
+        permanent: false,
+      },
+    };
+  }
 
   return {
     props: {
-      posts: JSON.parse(JSON.stringify(posts)),
+      session,
     },
-  }
+  };
 }

@@ -5,9 +5,14 @@ function titleFromCode(code) {
 }
 
 export default async function handler(req, res) {
-  const { method } = req
+  const { method } = req;
 
   switch (method) {
+    case 'GET':
+      const posts = await prisma.post.findMany()
+      res.status(200).json(posts)
+      break;
+
     case 'POST':
       const {language, code} = req.body
       const title = titleFromCode(code)
